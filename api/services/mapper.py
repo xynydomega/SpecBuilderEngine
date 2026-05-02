@@ -4,9 +4,12 @@ import vertexai
 from vertexai.generative_models import GenerativeModel
 from google.oauth2 import service_account
 try:
-    from ..models.spec import ArchitectSpec
+    from models.spec import ArchitectSpec
 except ImportError:
-    from api.models.spec import ArchitectSpec
+    try:
+        from ..models.spec import ArchitectSpec
+    except ImportError:
+        from api.models.spec import ArchitectSpec
 
 def map_intent(user_text: str, current_field: str, goal: str) -> dict:
     """

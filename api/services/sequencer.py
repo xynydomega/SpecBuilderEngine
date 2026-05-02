@@ -1,5 +1,11 @@
 from typing import Optional
-from ..models.spec import ArchitectSpec
+try:
+    from models.spec import ArchitectSpec
+except ImportError:
+    try:
+        from ..models.spec import ArchitectSpec
+    except ImportError:
+        from api.models.spec import ArchitectSpec
 
 PRIORITY_ORDER = [
     'goal',
