@@ -45,7 +45,7 @@ export const useSpecStore = create<SpecState>((set, get) => ({
       const response = await fetch(`${API_URL}/map`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: json.stringify({
+        body: JSON.stringify({
           user_text: text,
           current_field: get().currentStep,
           current_spec: get().spec
