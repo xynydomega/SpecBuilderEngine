@@ -1,4 +1,3 @@
-import React from 'react';
 import { Clarifier } from './components/Clarifier';
 import { InputArea } from './components/InputArea';
 import { IdeaCanvas } from './components/IdeaCanvas';

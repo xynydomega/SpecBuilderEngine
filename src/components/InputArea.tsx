@@ -1,39 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useSpecStore } from '../store/useSpecStore';
 import styles from '../styles/InputArea.module.css';
 import { Send } from 'lucide-react';
 
 export const InputArea: React.FC = () => {
-  const { currentStep, updateField, isComplete, reset } = useSpecStore();
+  const { currentStep, submitIntent, isComplete, reset, suggestions, isLoading } = useSpecStore();
   const [input, setInput] = useState('');
 
   useEffect(() => {
     setInput('');
   }, [currentStep]);
 
-  const getSuggestions = () => {
-    switch (currentStep) {
-      case 'type': return ['Screen', 'Feature', 'System', 'API'];
-      case 'inputs': return ['Email', 'Password', 'Username', 'Title'];
-      case 'ui': return ['Form', 'Button', 'Modal', 'List'];
-      case 'state': return ['Idle', 'Loading', 'Success', 'Error'];
-      default: return [];
-    }
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
+  const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
-    // Mock Semantic Mapper: Just split by comma for now
-    if (currentStep === 'goal') {
-      updateField(currentStep, input);
-    } else if (currentStep === 'responses') {
-       updateField(currentStep, { success: input });
-    } else {
-      updateField(currentStep, input.split(',').map(i => i.trim()));
-    }
-    
+    await submitIntent(input);
     setInput('');
   };
 
@@ -55,11 +37,12 @@ export const InputArea: React.FC = () => {
   return (
     <div className={styles.container}>
       <div className={styles.chips}>
-        {getSuggestions().map(chip => (
+        {suggestions.map(chip => (
           <button 
             key={chip} 
             className={styles.chip}
             onClick={() => handleChipClick(chip)}
+            disabled={isLoading}
           >
             {chip}
           </button>
@@ -70,10 +53,11 @@ export const InputArea: React.FC = () => {
           className={styles.input}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="Describe your intent..."
+          placeholder={isLoading ? "Processing..." : "Describe your intent..."}
           autoFocus
+          disabled={isLoading}
         />
-        <button type="submit" className={styles.sendButton}>
+        <button type="submit" className={styles.sendButton} disabled={isLoading || !input.trim()}>
           <Send size={20} />
         </button>
       </form>

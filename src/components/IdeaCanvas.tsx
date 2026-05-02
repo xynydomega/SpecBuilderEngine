@@ -1,6 +1,6 @@
-import React from 'react';
 import { useSpecStore } from '../store/useSpecStore';
-import { SpecNode, NODE_LABELS } from '../types/spec';
+import type { SpecNode } from '../types/spec';
+import { NODE_LABELS } from '../types/spec';
 import styles from '../styles/IdeaCanvas.module.css';
 import { CheckCircle2, Circle } from 'lucide-react';
 
