@@ -1,13 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+import os
+import sys
+
+# Add the current directory to sys.path to ensure imports work on Vercel
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 try:
+    from models.spec import MapRequest, MapResponse, ArchitectSpec
+    from services.sequencer import get_next_field, get_question, get_suggestions
+    from services.mapper import map_intent
+except ImportError:
     from .models.spec import MapRequest, MapResponse, ArchitectSpec
     from .services.sequencer import get_next_field, get_question, get_suggestions
     from .services.mapper import map_intent
-except ImportError:
-    from api.models.spec import MapRequest, MapResponse, ArchitectSpec
-    from api.services.sequencer import get_next_field, get_question, get_suggestions
-    from api.services.mapper import map_intent
 
 app = FastAPI(title="SpecBuilderEngine Backend")
 

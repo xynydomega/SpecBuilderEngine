@@ -2,6 +2,7 @@ import os
 import json
 import vertexai
 from vertexai.generative_models import GenerativeModel
+from google.oauth2 import service_account
 try:
     from ..models.spec import ArchitectSpec
 except ImportError:
@@ -14,8 +15,29 @@ def map_intent(user_text: str, current_field: str, goal: str) -> dict:
     # Initialize Vertex AI with project from environment or default
     project = os.environ.get("GCP_PROJECT_ID")
     location = os.environ.get("GCP_LOCATION", "us-central1")
-    vertexai.init(project=project, location=location)
-    model = GenerativeModel("gemini-1.5-flash")
+    print(f"DEBUG: Initializing Vertex AI for project: {project} in {location}")
+    
+    # Handle credentials from environment variable (can be a JSON string or a file path)
+    credentials = None
+    creds_json = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
+    if creds_json and creds_json.strip().startswith("{"):
+        try:
+            print("DEBUG: Found JSON credentials in environment variable. Parsing...")
+            creds_info = json.loads(creds_json)
+            credentials = service_account.Credentials.from_service_account_info(creds_info)
+            print("DEBUG: Successfully created credentials object.")
+        except Exception as e:
+            print(f"ERROR: Parsing GOOGLE_APPLICATION_CREDENTIALS: {e}")
+    else:
+        print("DEBUG: No JSON credentials string found. Falling back to default auth.")
+
+    try:
+        vertexai.init(project=project, location=location, credentials=credentials)
+        model = GenerativeModel("gemini-1.5-flash")
+        print("DEBUG: Vertex AI Initialized and model loaded.")
+    except Exception as e:
+        print(f"ERROR: During vertexai.init: {e}")
+        return [] if current_field != 'responses' else {}
 
     prompt = f"""
     You are the Semantic Mapper for the Architect engine. 
