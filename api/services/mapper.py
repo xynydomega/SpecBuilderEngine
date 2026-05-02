@@ -2,14 +2,19 @@ import os
 import json
 import vertexai
 from vertexai.generative_models import GenerativeModel
-from ..models.spec import ArchitectSpec
+try:
+    from ..models.spec import ArchitectSpec
+except ImportError:
+    from api.models.spec import ArchitectSpec
 
 def map_intent(user_text: str, current_field: str, goal: str) -> dict:
     """
     Uses Gemini to map user natural language into a structured JSON patch.
     """
-    # Initialize Vertex AI (assuming credentials are set in environment)
-    vertexai.init()
+    # Initialize Vertex AI with project from environment or default
+    project = os.environ.get("GCP_PROJECT_ID")
+    location = os.environ.get("GCP_LOCATION", "us-central1")
+    vertexai.init(project=project, location=location)
     model = GenerativeModel("gemini-1.5-flash")
 
     prompt = f"""

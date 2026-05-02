@@ -1,8 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .models.spec import MapRequest, MapResponse, ArchitectSpec
-from .services.sequencer import get_next_field, get_question, get_suggestions
-from .services.mapper import map_intent
+try:
+    from .models.spec import MapRequest, MapResponse, ArchitectSpec
+    from .services.sequencer import get_next_field, get_question, get_suggestions
+    from .services.mapper import map_intent
+except ImportError:
+    from api.models.spec import MapRequest, MapResponse, ArchitectSpec
+    from api.services.sequencer import get_next_field, get_question, get_suggestions
+    from api.services.mapper import map_intent
 
 app = FastAPI(title="SpecBuilderEngine Backend")
 
@@ -13,7 +18,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.post("/map", response_model=MapResponse)
+@app.post("/api/map", response_model=MapResponse)
 async def map_endpoint(request: MapRequest):
     # 1. Map user intent to current field
     patch = map_intent(
@@ -58,6 +63,6 @@ async def map_endpoint(request: MapRequest):
             is_complete=True
         )
 
-@app.get("/health")
+@app.get("/api/health")
 async def health():
     return {"status": "alive"}
