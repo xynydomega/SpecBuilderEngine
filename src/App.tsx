@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import InputArea from './components/InputArea'
-import BuilderSidebar from './components/BuilderSidebar'
+import FeaturesPanel from './components/FeaturesPanel'
+import { Settings } from 'lucide-react'
 
 interface Message {
   role: 'user' | 'agent';
@@ -13,6 +14,7 @@ function App() {
   const [patch, setPatch] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [sidebarSide, setSidebarSide] = useState<'left' | 'right'>('left')
   const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -25,6 +27,10 @@ function App() {
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const toggleSidebarSide = () => {
+    setSidebarSide(prev => prev === 'left' ? 'right' : 'left')
   }
 
   const initAgent = async () => {
@@ -94,32 +100,48 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <BuilderSidebar 
+    <div className={`app-container sidebar-${sidebarSide}`}>
+      <button className="settings-btn" onClick={toggleSidebarSide} title="Move Features Panel">
+        <Settings size={20} />
+      </button>
+
+      <FeaturesPanel 
         patch={patch} 
         onAccept={handleAcceptPatch} 
         onReject={handleRejectPatch}
         isLoading={isLoading}
       />
 
-      <main className="main-content">
-        <header className="app-header">
+      <main className="main-stage">
+        <div className="app-branding">
           <h1>THE ARCHITECT</h1>
           <p className="subtitle">By XYNYD</p>
-        </header>
+        </div>
         
-        <div className="chat-container">
-          <div className="chat-history">
-            {chatHistory.map((msg, idx) => (
-              <div key={idx} className={`message-wrapper ${msg.role}`}>
-                <div className="message-bubble">
-                  {msg.content}
+        <div className="content-area">
+          <div className="chat-scroll">
+            {chatHistory.map((msg, idx) => {
+              // First agent message is treated as the stylized hero quote
+              if (idx === 0 && msg.role === 'agent') {
+                return (
+                  <div key={idx} className="hero-quote-container">
+                    <div className="quote-text">{msg.content}</div>
+                  </div>
+                )
+              }
+              
+              return (
+                <div key={idx} className={`message-wrapper ${msg.role}`}>
+                  <div className="message-card">
+                    {msg.content}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
+            
             {isLoading && (
               <div className="message-wrapper agent">
-                <div className="message-bubble loading">
+                <div className="message-card loading">
                   <div className="typing-dots">
                     <span>.</span><span>.</span><span>.</span>
                   </div>
@@ -131,9 +153,7 @@ function App() {
           
           {error && <div className="error-banner">{error}</div>}
           
-          <div className="input-container-floating">
-            <InputArea onSendMessage={handleSendMessage} isLoading={isLoading} />
-          </div>
+          <InputArea onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
       </main>
     </div>

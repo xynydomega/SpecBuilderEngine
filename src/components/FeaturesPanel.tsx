@@ -1,22 +1,14 @@
 import React from 'react';
 import { Check, X, Info } from 'lucide-react';
 
-interface BuilderSidebarProps {
+interface FeaturesPanelProps {
   patch: any;
   onAccept: (patch: any) => void;
   onReject: () => void;
   isLoading: boolean;
 }
 
-const BuilderSidebar: React.FC<BuilderSidebarProps> = ({ patch, onAccept, onReject, isLoading }) => {
-  if (!patch && !isLoading) {
-    return (
-      <div className="sidebar-empty">
-        <p>Your blueprint will appear here as you describe your project.</p>
-      </div>
-    );
-  }
-
+const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject, isLoading }) => {
   const renderComponent = (key: string, data: any) => {
     if (!data) return null;
 
@@ -60,9 +52,9 @@ const BuilderSidebar: React.FC<BuilderSidebarProps> = ({ patch, onAccept, onReje
   };
 
   return (
-    <div className="builder-sidebar">
-      <div className="sidebar-header">
-        <h2>Blueprint</h2>
+    <div className="features-panel">
+      <div className="panel-header">
+        <h2>Features</h2>
         {patch && (
           <div className="patch-actions">
             <button onClick={() => onAccept(patch)} className="accept-button" title="Accept all">
@@ -75,11 +67,15 @@ const BuilderSidebar: React.FC<BuilderSidebarProps> = ({ patch, onAccept, onReje
         )}
       </div>
 
-      <div className="sidebar-body">
+      <div className="panel-body">
         {isLoading ? (
           <div className="sidebar-loading">
             <div className="spinner large"></div>
             <p>Analyzing architecture...</p>
+          </div>
+        ) : !patch ? (
+          <div className="sidebar-empty">
+            <p>Your blueprint will appear here as you describe your project.</p>
           </div>
         ) : (
           Object.entries(patch || {}).map(([key, data]) => renderComponent(key, data))
@@ -89,4 +85,4 @@ const BuilderSidebar: React.FC<BuilderSidebarProps> = ({ patch, onAccept, onReje
   );
 };
 
-export default BuilderSidebar;
+export default FeaturesPanel;
