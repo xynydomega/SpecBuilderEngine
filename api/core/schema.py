@@ -8,13 +8,8 @@ class SchemaEngine:
             "filled": False,
             "confidence": 0.0,
             "confirmed": False,
-            "status": "pending",
+            "status": "pending", 
             "source": "none",
-            "scope_locked": True,
-            "scope": {
-                "level": "MVP",
-                "version": 1
-            },
             "dependencies": [],
             "history": [],
             "last_updated": None
@@ -23,69 +18,135 @@ class SchemaEngine:
         self.base_schema = {
             "goal": {
                 "target": {
-                    "role": "define main product idea",
-                    "examples": ["math tutor", "fitness app", "login system"]
+                    "role": "define system outcome",
+                    "success_criteria": []
                 },
                 "state": {
                     "value": None,
                     "resolved": False
                 },
-                "meta": self._create_meta(source="user")
+                "meta": self._create_meta(source="user"),
+                "direction": {
+                    "on_update": [
+                        { "type": "assign", "target": "goal.state.value", "from": "user.input" },
+                        { "type": "validate", "target": "goal.state.value" },
+                        { "type": "set", "target": "goal.meta.filled", "value": True },
+                        { "type": "set", "target": "goal.meta.source", "value": "user" }
+                    ],
+                    "on_resolve": [
+                        { "type": "branch", "condition": "valid", "next": "goal.state.resolved.true" },
+                        { "type": "branch", "condition": "invalid", "next": "agent.ask_goal" }
+                    ]
+                }
             },
-            "type_hypothesis": {
+            "type": {
                 "target": {
-                    "role": "decompose goal into functional modules"
+                    "role": "predict structure or intent"
                 },
                 "state": {
-                    "components": [],
-                    "scope": "MVP"
+                    "candidates": [],
+                    "selected": None,
+                    "confidence": 0.0
                 },
-                "meta": self._create_meta(source="inferred", dependencies=["goal"])
+                "meta": self._create_meta(source="inferred", dependencies=["goal"]),
+                "direction": {
+                    "on_infer": [
+                        { "type": "extract", "target": "user.input" },
+                        { "type": "generate", "target": "candidates" },
+                        { "type": "score", "target": "confidence" },
+                        { "type": "set", "target": "meta.filled", "value": True }
+                    ],
+                    "on_validate": [
+                        { "type": "branch", "condition": "confidence >= 0.6", "next": "select_candidate" },
+                        { "type": "branch", "condition": "confidence < 0.6", "next": "agent.ask_type" }
+                    ]
+                }
             },
-            "inputs": {
+            "input": {
                 "target": {
                     "role": "collect required data"
                 },
                 "state": {
-                    "fields": {}
+                    "fields": {},
+                    "valid": False
                 },
-                "meta": self._create_meta(source="mixed", dependencies=["goal", "type_hypothesis"])
+                "meta": self._create_meta(source="mixed", dependencies=["goal"]),
+                "direction": {
+                    "on_input": [
+                        { "type": "merge", "target": "input.state.fields", "from": "user.input" },
+                        { "type": "validate", "target": "input.state.fields" },
+                        { "type": "set", "target": "input.meta.filled", "value": True }
+                    ]
+                },
+                "components": {}
             },
-            "outputs": {
+            "output": {
                 "target": {
                     "role": "system outputs per component"
                 },
                 "state": {
-                    "results": {}
+                    "results": {},
+                    "valid": False
                 },
-                "meta": self._create_meta(dependencies=["inputs"])
+                "meta": self._create_meta(dependencies=["input"]),
+                "direction": {
+                    "on_output": [
+                        { "type": "generate", "target": "results", "from": "input" }
+                    ]
+                }
             },
             "ui": {
                 "target": {
-                    "role": "render MVP interface only"
+                    "role": "render interface"
                 },
                 "state": {
-                    "layout": "MVP"
+                    "layout": None
                 },
-                "meta": self._create_meta(dependencies=["type_hypothesis"])
+                "meta": self._create_meta(required=False, dependencies=["type"]),
+                "direction": {
+                    "on_render": [
+                        { "type": "build", "target": "layout", "from": "components" }
+                    ]
+                }
             },
             "behavior": {
                 "target": {
-                    "role": "control execution flow"
+                    "role": "orchestrate execution"
                 },
                 "state": {
-                    "mode": "MVP_BUILD"
+                    "current_step": None
                 },
-                "meta": self._create_meta(filled=True, confidence=1.0, status="locked")
+                "meta": self._create_meta(filled=True, confidence=1.0, status="locked", confirmed=True),
+                "direction": {
+                    "flow": [
+                        { "type": "call", "target": "mapper.on_input" },
+                        { "type": "call", "target": "sequencer.on_step" },
+                        { "type": "call", "target": "agent.loop" }
+                    ]
+                }
             },
             "suggestions": {
                 "target": {
-                    "role": "capture user requested modifications"
+                    "role": "assist missing components with safe patterns"
                 },
                 "state": {
                     "items": []
                 },
-                "meta": self._create_meta(required=False, source="user", scope_locked=False)
+                "meta": self._create_meta(required=False, source="inferred"),
+                "direction": {
+                    "on_generate": [
+                        {
+                            "type": "suggest",
+                            "items": [
+                                {
+                                    "component": "password",
+                                    "reason": "standard authentication pattern",
+                                    "confidence": 0.7
+                                }
+                            ]
+                        }
+                    ]
+                }
             }
         }
         self.current_schema = copy.deepcopy(self.base_schema)
@@ -101,20 +162,6 @@ class SchemaEngine:
     def reset_schema(self):
         self.current_schema = copy.deepcopy(self.base_schema)
         return self.current_schema
-
-    def validate_node(self, node_data):
-        """Ensures a node has the mandatory meta contract."""
-        if not isinstance(node_data, dict) or "meta" not in node_data:
-            return False, "Node must contain 'meta' object."
-        
-        required_meta_keys = set(self.default_meta.keys())
-        provided_meta_keys = set(node_data["meta"].keys())
-        
-        missing_keys = required_meta_keys - provided_meta_keys
-        if missing_keys:
-            return False, f"Missing mandatory meta keys: {missing_keys}"
-        
-        return True, "Valid"
 
     def apply_patch(self, patch):
         """Merges a patch into the current schema with history tracking."""
@@ -132,9 +179,11 @@ class SchemaEngine:
                             "timestamp": old_node["meta"].get("last_updated")
                         }
                     }
+                    if "history" not in new_node["meta"]:
+                         new_node["meta"]["history"] = []
                     new_node["meta"]["history"] = old_node["meta"].get("history", []) + [history_entry]
                 
-                # Merge
+                new_node["meta"]["last_updated"] = datetime.now().isoformat()
                 self.current_schema[key].update(new_node)
         return self.current_schema
 

@@ -13,24 +13,27 @@ const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject
     if (!data) return null;
 
     let content = null;
+    const state = data.state || {};
+
+    // Unified renderer based on structure instead of hardcoded keys where possible
     if (key === 'goal') {
-      content = <p className="component-value">"{data.state.value}"</p>;
-    } else if (key === 'type_hypothesis') {
+      content = <p className="component-value">"{state.value || state.vision || JSON.stringify(state)}"</p>;
+    } else if (state.components || state.candidates || Array.isArray(state)) {
+      const items = state.components || state.candidates || (Array.isArray(state) ? state : []);
       content = (
         <ul className="component-list">
-          {data.state.components.map((c: any, i: number) => (
-            <li key={i} title={c.reason}>
-              {c.name}
-            </li>
+          {items.map((c: any, i: number) => (
+            <li key={i}>{typeof c === 'string' ? c : (c.name || c.label || JSON.stringify(c))}</li>
           ))}
         </ul>
       );
-    } else if (key === 'inputs') {
+    } else if (state.fields || state.results || typeof state === 'object') {
+      const entries = state.fields || state.results || state;
       content = (
         <ul className="component-list">
-          {Object.entries(data.state.fields).map(([field, details]: [string, any], i: number) => (
-            <li key={i} title={details.reason}>
-              {field}
+          {Object.entries(entries).map(([k, v]: [string, any], i: number) => (
+            <li key={i}>
+              <strong>{k}:</strong> {typeof v === 'string' ? v : (v.reason || v.role || JSON.stringify(v))}
             </li>
           ))}
         </ul>
@@ -44,7 +47,7 @@ const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject
           <span className="node-confidence">{(data.meta.confidence * 100).toFixed(0)}%</span>
         </div>
         <div className="node-reason">
-          <Info size={12} /> {data.target.role}
+          <Info size={12} /> {data.target.role || data.target.intent || "System Component"}
         </div>
         <div className="node-content">{content}</div>
       </div>
@@ -78,7 +81,7 @@ const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject
             <p>Your blueprint will appear here as you describe your project.</p>
           </div>
         ) : (
-          Object.entries(patch || {}).map(([key, data]) => renderComponent(key, data))
+          Object.entries(patch).map(([key, data]) => renderComponent(key, data))
         )}
       </div>
     </div>

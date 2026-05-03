@@ -15,45 +15,37 @@ class MapperEngine:
         if not self.client:
             return {"error": "GROQ_API_KEY not configured"}
 
+        # Filter schema to relevant info for context to save tokens
+        schema_context = {k: {"target": v["target"], "state": v["state"]} for k, v in current_schema.items()}
+
         prompt = f"""
         You are 'The Architect' Mapper Engine. 
-        Your task is to translate user input into structured updates for a system schema.
+        Your task is to translate user input into structured updates for a system schema based on 'Component = Unit of Meaning'.
         
-        Current Schema Context: {json.dumps(current_schema)}
+        Current Schema Context: {json.dumps(schema_context)}
         
         User Input: "{user_input}"
         
-        Instructions:
-        1. Extract the primary 'goal' (what they want to build).
-        2. Decompose the goal into 'functional modules' for the 'type_hypothesis'.
-        3. Identify specific 'inputs' (data fields) required.
-        4. For each extraction, provide a 'reason' (target.role).
-        5. Assign a 'confidence' score (0.0 to 1.0).
+        Extraction targets:
+        - 'goal': The main outcome/vision.
+        - 'type': Functional structure/modules.
+        - 'input': Data requirements.
+        - 'behavior': Execution flow/logic.
+        - 'output': Expected results.
+        - 'ui': Interface patterns.
         
-        Return ONLY a JSON object in this exact format:
-        {{
-            "goal": {{
-                "value": "string",
-                "reason": "string",
-                "confidence": 0.9
-            }},
-            "type_hypothesis": [
-                {{ "name": "string", "reason": "string", "confidence": 0.8 }}
-            ],
-            "inputs": [
-                {{ "field": "string", "reason": "string", "confidence": 0.7 }}
-            ]
-        }}
+        For each extraction:
+        1. Define the 'goal' of the change (what is being added/updated).
+        2. Define the 'direction' (how it evolves, e.g., "assign", "merge").
+        3. Define the 'state' (the actual structured data).
+        4. Assign 'confidence' (0.0 to 1.0).
+        
+        Return ONLY a JSON object mapping these keys to their new structures.
         """
 
         try:
             chat_completion = self.client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ],
+                messages=[{"role": "user", "content": prompt}],
                 model="llama-3.1-8b-instant",
                 response_format={"type": "json_object"}
             )
@@ -64,44 +56,23 @@ class MapperEngine:
             return {"error": str(e)}
 
     def _build_patch(self, data):
-        """Converts extracted data into a schema patch."""
+        """Converts extracted data into a schema patch following the new contract."""
         patch = {}
         
-        if "goal" in data and data["goal"].get("value"):
-            patch["goal"] = {
-                "state": {"value": data["goal"]["value"], "resolved": True},
-                "target": {"role": data["goal"]["reason"]},
-                "meta": {
-                    "filled": True,
-                    "confidence": data["goal"]["confidence"],
-                    "source": "inferred",
-                    "last_updated": datetime.utcnow().isoformat()
+        for key in ["goal", "type", "input", "output", "ui", "behavior"]:
+            if key in data:
+                node_data = data[key]
+                patch[key] = {
+                    "target": node_data.get("target") or node_data.get("goal_intent") or {},
+                    "state": node_data.get("state") or {},
+                    "direction": node_data.get("direction") or {},
+                    "meta": {
+                        "filled": True,
+                        "confidence": node_data.get("confidence", 0.7),
+                        "source": "inferred",
+                        "last_updated": datetime.utcnow().isoformat()
+                    }
                 }
-            }
-            
-        if "type_hypothesis" in data and data["type_hypothesis"]:
-            patch["type_hypothesis"] = {
-                "state": {"components": data["type_hypothesis"]},
-                "target": {"role": "decompose goal into functional modules"},
-                "meta": {
-                    "filled": True,
-                    "confidence": sum(c.get("confidence", 0) for c in data["type_hypothesis"]) / len(data["type_hypothesis"]) if data["type_hypothesis"] else 0,
-                    "source": "inferred",
-                    "last_updated": datetime.utcnow().isoformat()
-                }
-            }
-            
-        if "inputs" in data and data["inputs"]:
-            patch["inputs"] = {
-                "state": {"fields": {i["field"]: {"reason": i["reason"]} for i in data["inputs"] if "field" in i}},
-                "target": {"role": "collect required data"},
-                "meta": {
-                    "filled": True,
-                    "confidence": sum(c.get("confidence", 0) for c in data["inputs"]) / len(data["inputs"]) if data["inputs"] else 0,
-                    "source": "inferred",
-                    "last_updated": datetime.utcnow().isoformat()
-                }
-            }
             
         return patch
 
