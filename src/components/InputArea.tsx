@@ -40,7 +40,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSendMessage, isLoading }) => {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="What are we building today? Describe your feature..."
+          placeholder="Describe your project..."
           disabled={isLoading}
           rows={1}
         />
@@ -49,7 +49,7 @@ const InputArea: React.FC<InputAreaProps> = ({ onSendMessage, isLoading }) => {
           disabled={isLoading || !input.trim()} 
           className="send-btn-inside"
         >
-          {isLoading ? <div className="spinner"></div> : <Send size={18} />}
+          {isLoading ? <div className="spinner"></div> : <Send size={16} />}
         </button>
       </div>
     </div>

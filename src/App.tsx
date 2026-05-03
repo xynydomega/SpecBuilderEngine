@@ -102,7 +102,7 @@ function App() {
   return (
     <div className={`app-container sidebar-${sidebarSide}`}>
       <button className="settings-btn" onClick={toggleSidebarSide} title="Move Features Panel">
-        <Settings size={20} />
+        <Settings size={18} />
       </button>
 
       <FeaturesPanel 
@@ -113,15 +113,17 @@ function App() {
       />
 
       <main className="main-stage">
+        {/* Path 1: App Branding */}
         <div className="app-branding">
           <h1>THE ARCHITECT</h1>
           <p className="subtitle">By XYNYD</p>
         </div>
         
+        {/* Path 2 & 3: Content Area (Quote + Chat) */}
         <div className="content-area">
           <div className="chat-scroll">
             {chatHistory.map((msg, idx) => {
-              // First agent message is treated as the stylized hero quote
+              // Path 2: First agent message as Stylized Hero Quote
               if (idx === 0 && msg.role === 'agent') {
                 return (
                   <div key={idx} className="hero-quote-container">
@@ -130,6 +132,7 @@ function App() {
                 )
               }
               
+              // Path 3: Subsequent Chat Messages
               return (
                 <div key={idx} className={`message-wrapper ${msg.role}`}>
                   <div className="message-card">
@@ -150,11 +153,14 @@ function App() {
             )}
             <div ref={chatEndRef} />
           </div>
-          
-          {error && <div className="error-banner">{error}</div>}
-          
+        </div>
+
+        {/* Path 4: Slim Floating Input Bar */}
+        <div className="input-floating-container">
           <InputArea onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
+
+        {error && <div className="error-banner">{error}</div>}
       </main>
     </div>
   )
