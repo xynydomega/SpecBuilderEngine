@@ -8,19 +8,39 @@ function App() {
   const [patch, setPatch] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [nextStep, setNextStep] = useState<any>(null)
 
   useEffect(() => {
-    fetchSchema()
+    init()
   }, [])
+
+  const init = async () => {
+    setIsLoading(true)
+    try {
+      await fetchSchema()
+      await fetchNextStep()
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const fetchSchema = async () => {
     try {
       const res = await fetch('/api/schema')
       await res.json()
-      // Schema state removed as it is currently unused in the UI
     } catch (err) {
       console.error("Failed to fetch schema", err)
       setError("Failed to connect to the Architect Engine.")
+    }
+  }
+
+  const fetchNextStep = async () => {
+    try {
+      const res = await fetch('/api/sequencer/next')
+      const data = await res.json()
+      setNextStep(data)
+    } catch (err) {
+      console.error("Failed to fetch next step", err)
     }
   }
 
@@ -56,6 +76,7 @@ function App() {
       })
       await res.json()
       setPatch(null)
+      await fetchNextStep() // Get the next step after applying
     } catch (err) {
       setError("Failed to apply changes.")
     } finally {
@@ -78,8 +99,8 @@ function App() {
         <div className="center-stage">
           {error && <div className="error-banner">{error}</div>}
           <div className="welcome-text">
-            <h2>System Outcome Definition</h2>
-            <p>Describe your vision. The engine will decompose it into functional components.</p>
+            <h2>{nextStep?.prompt || "System Outcome Definition"}</h2>
+            <p className="node-indicator">Target: {nextStep?.node || "Goal"}</p>
           </div>
           <InputArea onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>

@@ -64,9 +64,13 @@ body {
   margin-bottom: 0.5rem;
 }
 
-.welcome-text p {
-  color: var(--text-dim);
-  margin-bottom: 2rem;
+.welcome-text p.node-indicator {
+  color: var(--accent-color);
+  font-size: 0.8rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-top: 1rem;
 }
 
 /* Input Area */

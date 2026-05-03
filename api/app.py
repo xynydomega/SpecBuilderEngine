@@ -2,6 +2,7 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 from .core.schema import schema_engine
 from .core.mapper import mapper_engine
+from .core.sequencer import sequencer_engine
 
 app = Flask(__name__)
 CORS(app)
@@ -60,6 +61,12 @@ def mapper_apply():
     
     updated_schema = schema_engine.apply_patch(patch)
     return jsonify({"message": "Patch applied successfully", "schema": updated_schema}), 200
+
+@app.route('/api/sequencer/next', methods=['GET'])
+def sequencer_next():
+    current_schema = schema_engine.get_schema()
+    next_step = sequencer_engine.get_next_step(current_schema)
+    return jsonify(next_step), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)
