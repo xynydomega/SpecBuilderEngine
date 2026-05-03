@@ -196,16 +196,16 @@ body {
   bottom: 1.5rem;
   left: 1.5rem;
   right: 1.5rem;
-  height: 10%;
-  min-height: 60px;
-  max-height: 150px;
+  min-height: 64px;
+  max-height: 200px;
   background: #1a1a1a;
   border: 1px solid var(--border-color);
   border-radius: var(--radius);
   display: flex;
   align-items: center;
-  padding: 0 0.5rem;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  padding: 0 0.8rem;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  transition: all 0.3s ease;
 }
 
 .input-field-wrapper {
@@ -213,7 +213,7 @@ body {
   display: flex;
   align-items: center;
   position: relative;
-  height: 100%;
+  min-height: 64px;
 }
 
 .input-field-wrapper textarea {
@@ -221,31 +221,44 @@ body {
   background: transparent;
   border: none;
   color: white;
-  padding: 1rem;
-  padding-right: 50px;
+  padding: 1.2rem 60px; /* Balanced padding for centered text with absolute button */
   resize: none;
   font-family: inherit;
   font-size: 1rem;
   outline: none;
+  text-align: center;
+  line-height: 1.5;
+  display: flex;
+  align-items: center;
+}
+
+.input-field-wrapper textarea::placeholder {
+  text-align: center;
+  color: var(--text-dim);
+  opacity: 0.6;
 }
 
 .send-btn-inside {
   position: absolute;
-  right: 10px;
-  width: 40px;
-  height: 40px;
+  right: 8px;
+  width: 44px;
+  height: 44px;
   background: var(--accent-color);
-  border-radius: 12px;
+  border-radius: 14px;
   border: none;
   color: white;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.2s;
+  transition: all 0.2s ease;
+  z-index: 2;
 }
 
-.send-btn-inside:hover { transform: scale(1.05); }
+.send-btn-inside:hover { 
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+}
 
 /* Sidebar Nodes */
 .sidebar-node {
