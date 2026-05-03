@@ -26,9 +26,9 @@ body {
   display: flex;
   height: 100vh;
   width: 100vw;
-  padding: var(--spacing);
+  padding: 20px;
   box-sizing: border-box;
-  gap: var(--spacing);
+  gap: 20px;
   position: relative;
 }
 
@@ -38,7 +38,7 @@ body {
 
 /* Features Panel */
 .features-panel {
-  width: calc(var(--panel-width) - (var(--spacing) / 2));
+  flex: 0 0 calc(30% - 10px);
   height: 100%;
   background: var(--card-bg);
   border: 1px solid var(--border-color);
@@ -73,12 +73,11 @@ body {
 
 /* Middle Screen (70%) */
 .main-stage {
-  flex: 1;
+  flex: 0 0 calc(70% - 10px);
   display: flex;
   flex-direction: column;
   height: 100%;
   gap: var(--spacing);
-  max-width: calc(var(--main-width) - (var(--spacing) / 2));
 }
 
 /* 1) App Branding Card */
