@@ -1,6 +1,0 @@
-fastapi
-uvicorn
-pydantic
-google-cloud-aiplatform
-python-dotenv
-fastapi-cors
