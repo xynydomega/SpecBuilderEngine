@@ -1,66 +1,70 @@
-import { useState, useEffect } from 'react'
-// Triggering fresh build
+import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import InputArea from './components/InputArea'
 import BuilderSidebar from './components/BuilderSidebar'
 
+interface Message {
+  role: 'user' | 'agent';
+  content: string;
+}
+
 function App() {
+  const [chatHistory, setChatHistory] = useState<Message[]>([])
   const [patch, setPatch] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [nextStep, setNextStep] = useState<any>(null)
+  const chatEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    init()
+    initAgent()
   }, [])
 
-  const init = async () => {
+  useEffect(() => {
+    scrollToBottom()
+  }, [chatHistory])
+
+  const scrollToBottom = () => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  const initAgent = async () => {
     setIsLoading(true)
     try {
-      await fetchSchema()
-      await fetchNextStep()
+      const res = await fetch('/api/agent/init')
+      const data = await res.json()
+      setChatHistory([{ role: 'agent', content: data.message }])
+    } catch (err) {
+      console.error("Failed to init agent", err)
+      setError("Failed to connect to the Architect Engine.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const fetchSchema = async () => {
-    try {
-      const res = await fetch('/api/schema')
-      await res.json()
-    } catch (err) {
-      console.error("Failed to fetch schema", err)
-      setError("Failed to connect to the Architect Engine.")
-    }
-  }
-
-  const fetchNextStep = async () => {
-    try {
-      const res = await fetch('/api/sequencer/next')
-      const data = await res.json()
-      setNextStep(data)
-    } catch (err) {
-      console.error("Failed to fetch next step", err)
-    }
-  }
-
   const handleSendMessage = async (message: string) => {
+    const newUserMessage: Message = { role: 'user', content: message }
+    setChatHistory(prev => [...prev, newUserMessage])
     setIsLoading(true)
     setError(null)
+
     try {
-      const res = await fetch('/api/mapper/extract', {
+      const res = await fetch('/api/agent/message', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input: message })
       })
       const data = await res.json()
+      
       if (data.error) {
         setError(data.error)
       } else {
-        setPatch(data.patch)
+        setChatHistory(prev => [...prev, { role: 'agent', content: data.message }])
+        if (data.patch && Object.keys(data.patch).length > 0) {
+          setPatch(data.patch)
+        }
       }
     } catch (err) {
-      setError("Extraction failed. Please check your connection.")
+      setError("Agent is unresponsive. Please check your connection.")
     } finally {
       setIsLoading(false)
     }
@@ -69,14 +73,14 @@ function App() {
   const handleAcceptPatch = async (confirmedPatch: any) => {
     setIsLoading(true)
     try {
-      const res = await fetch('/api/mapper/apply', {
+      const res = await fetch('/api/agent/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patch: confirmedPatch })
       })
-      await res.json()
+      const data = await res.json()
       setPatch(null)
-      await fetchNextStep() // Get the next step after applying
+      setChatHistory(prev => [...prev, { role: 'agent', content: data.next_step_prompt }])
     } catch (err) {
       setError("Failed to apply changes.")
     } finally {
@@ -86,6 +90,7 @@ function App() {
 
   const handleRejectPatch = () => {
     setPatch(null)
+    setChatHistory(prev => [...prev, { role: 'agent', content: "I understand. Let's try to redefine that part. What would you like to change?" }])
   }
 
   return (
@@ -103,16 +108,32 @@ function App() {
           <p className="subtitle">By XYNYD</p>
         </header>
         
-        <div className="center-stage">
-          {error && <div className="error-banner">{error}</div>}
-          <div className="welcome-text">
-            <h2>{nextStep?.prompt || "System Outcome Definition"}</h2>
-            <p className="node-indicator">Target: {nextStep?.node || "Goal"}</p>
+        <div className="chat-container">
+          <div className="chat-history">
+            {chatHistory.map((msg, idx) => (
+              <div key={idx} className={`message-wrapper ${msg.role}`}>
+                <div className="message-bubble">
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="message-wrapper agent">
+                <div className="message-bubble loading">
+                  <div className="typing-dots">
+                    <span>.</span><span>.</span><span>.</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
           </div>
-        </div>
-
-        <div className="bottom-right-container">
-          <InputArea onSendMessage={handleSendMessage} isLoading={isLoading} />
+          
+          {error && <div className="error-banner">{error}</div>}
+          
+          <div className="input-container-floating">
+            <InputArea onSendMessage={handleSendMessage} isLoading={isLoading} />
+          </div>
         </div>
       </main>
     </div>

@@ -1,26 +1,25 @@
 import os
 import json
-import google.generativeai as genai
+from groq import Groq
 from datetime import datetime
 
 class MapperEngine:
     def __init__(self):
-        api_key = os.environ.get("GEMINI_API_KEY")
+        api_key = os.environ.get("GROQ_API_KEY")
         if api_key:
-            genai.configure(api_key=api_key)
-            self.model = genai.GenerativeModel('gemini-1.5-flash')
+            self.client = Groq(api_key=api_key)
         else:
-            self.model = None
+            self.client = None
 
     def extract_from_input(self, user_input, current_schema):
-        if not self.model:
-            return {"error": "GEMINI_API_KEY not configured"}
+        if not self.client:
+            return {"error": "GROQ_API_KEY not configured"}
 
         prompt = f"""
         You are 'The Architect' Mapper Engine. 
         Your task is to translate user input into structured updates for a system schema.
         
-        Current Schema Goal: {json.dumps(current_schema.get('goal', {}).get('state', {}).get('value'))}
+        Current Schema Context: {json.dumps(current_schema)}
         
         User Input: "{user_input}"
         
@@ -48,13 +47,18 @@ class MapperEngine:
         """
 
         try:
-            response = self.model.generate_content(prompt)
-            # Basic JSON extraction from markdown if needed
-            text = response.text
-            if "```json" in text:
-                text = text.split("```json")[1].split("```")[0].strip()
+            chat_completion = self.client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt,
+                    }
+                ],
+                model="llama3-8b-8192",
+                response_format={"type": "json_object"}
+            )
             
-            extracted_data = json.loads(text)
+            extracted_data = json.loads(chat_completion.choices[0].message.content)
             return self._build_patch(extracted_data)
         except Exception as e:
             return {"error": str(e)}
@@ -63,7 +67,7 @@ class MapperEngine:
         """Converts extracted data into a schema patch."""
         patch = {}
         
-        if "goal" in data:
+        if "goal" in data and data["goal"].get("value"):
             patch["goal"] = {
                 "state": {"value": data["goal"]["value"], "resolved": True},
                 "target": {"role": data["goal"]["reason"]},
@@ -75,25 +79,25 @@ class MapperEngine:
                 }
             }
             
-        if "type_hypothesis" in data:
+        if "type_hypothesis" in data and data["type_hypothesis"]:
             patch["type_hypothesis"] = {
                 "state": {"components": data["type_hypothesis"]},
                 "target": {"role": "decompose goal into functional modules"},
                 "meta": {
                     "filled": True,
-                    "confidence": sum(c["confidence"] for c in data["type_hypothesis"]) / len(data["type_hypothesis"]) if data["type_hypothesis"] else 0,
+                    "confidence": sum(c.get("confidence", 0) for c in data["type_hypothesis"]) / len(data["type_hypothesis"]) if data["type_hypothesis"] else 0,
                     "source": "inferred",
                     "last_updated": datetime.utcnow().isoformat()
                 }
             }
             
-        if "inputs" in data:
+        if "inputs" in data and data["inputs"]:
             patch["inputs"] = {
-                "state": {"fields": {i["field"]: {"reason": i["reason"]} for i in data["inputs"]}},
+                "state": {"fields": {i["field"]: {"reason": i["reason"]} for i in data["inputs"] if "field" in i}},
                 "target": {"role": "collect required data"},
                 "meta": {
                     "filled": True,
-                    "confidence": sum(c["confidence"] for c in data["inputs"]) / len(data["inputs"]) if data["inputs"] else 0,
+                    "confidence": sum(c.get("confidence", 0) for c in data["inputs"]) / len(data["inputs"]) if data["inputs"] else 0,
                     "source": "inferred",
                     "last_updated": datetime.utcnow().isoformat()
                 }
