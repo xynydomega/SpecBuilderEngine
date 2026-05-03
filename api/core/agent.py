@@ -11,50 +11,41 @@ class AgentEngine:
             self.client = None
 
     def get_initial_greeting(self):
-        """Generates an inspiring philosophical quote about structured building."""
-        if not self.client:
-            return "Architecture begins where engineering ends. Describe your vision, and we shall build its blueprint."
+        return "System active. Define the core purpose of the main objective."
 
-        prompt = "Generate a short, inspiring, and philosophical quote about the beauty of structured building, architecture, or turning ideas into blueprints. Keep it under 30 words."
-        
-        try:
-            chat_completion = self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
-                model="llama-3.1-8b-instant",
-            )
-            return chat_completion.choices[0].message.content.strip().replace('"', '')
-        except:
-            return "Structure is the skeleton of vision. Let us define the bones of your idea."
+    def generate_response(self, user_input, patch, next_step, is_irrelevant=False):
+        """Generates a strict, masked interrogation response under 30 words."""
+        if is_irrelevant:
+            return "I do not see how this relates to a goal. Stay on task."
 
-    def generate_response(self, user_input, patch, next_step):
-        """Generates a conversational response based on the extraction and next step."""
         if not self.client:
-            return f"I've analyzed your input. Based on our blueprint, the next logical step is to look at the {next_step['node']}."
+            return next_step['prompt']
 
         prompt = f"""
-        You are 'The Architect', a philosophical and expert system designer. 
-        The user just said: "{user_input}"
+        You are an Interrogator gathering system specs.
         
-        Our Mapper extracted these potential updates (patch): {json.dumps(patch)}
-        The Sequencer says the next target node is: "{next_step['node']}" (Action: {next_step['action']})
+        User Input: "{user_input}"
+        Extraction: {json.dumps(patch)}
+        Next Question to ask: "{next_step['prompt']}"
         
-        Instructions:
-        1. Respond to the user's input naturally. 
-        2. Briefly acknowledge what was understood (the goal or components) without being mechanical.
-        3. Transition smoothly to the next step suggested by the sequencer.
-        4. Keep the tone collaborative, professional, and slightly philosophical.
-        5. DO NOT mention internal terms like 'patch', 'node', or 'sequencer'.
+        RULES:
+        1. MAX 30 WORDS.
+        2. NO conversation, NO philosophy, NO greetings.
+        3. Read back what was just defined.
+        4. Ask the Next Question exactly or closely.
         
-        Response:
+        Response Format Example:
+        "Extracted [X]. Now, [Next Question]"
         """
         
         try:
             chat_completion = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model="llama-3.1-8b-instant",
+                max_tokens=50
             )
             return chat_completion.choices[0].message.content.strip()
-        except Exception as e:
-            return f"I understand your vision for {next_step['node']}. Let's continue by defining it further."
+        except:
+            return next_step['prompt']
 
 agent_engine = AgentEngine()
