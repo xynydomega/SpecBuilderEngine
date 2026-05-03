@@ -4,7 +4,6 @@ import InputArea from './components/InputArea'
 import BuilderSidebar from './components/BuilderSidebar'
 
 function App() {
-  const [schema, setSchema] = useState<any>(null)
   const [patch, setPatch] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -16,8 +15,8 @@ function App() {
   const fetchSchema = async () => {
     try {
       const res = await fetch('/api/schema')
-      const data = await res.json()
-      setSchema(data)
+      await res.json()
+      // Schema state removed as it is currently unused in the UI
     } catch (err) {
       console.error("Failed to fetch schema", err)
       setError("Failed to connect to the Architect Engine.")
