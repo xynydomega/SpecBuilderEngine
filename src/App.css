@@ -194,17 +194,19 @@ body {
 .input-floating-bar {
   position: absolute;
   bottom: 1.5rem;
-  left: 1.5rem;
-  right: 1.5rem;
-  min-height: 64px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 3rem);
+  max-width: 800px;
+  min-height: 52px;
   max-height: 200px;
   background: #1a1a1a;
   border: 1px solid var(--border-color);
-  border-radius: var(--radius);
+  border-radius: 26px; /* Pill shape for smaller height */
   display: flex;
   align-items: center;
-  padding: 0 0.8rem;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  padding: 0 0.6rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
   transition: all 0.3s ease;
 }
 
@@ -213,7 +215,7 @@ body {
   display: flex;
   align-items: center;
   position: relative;
-  min-height: 64px;
+  min-height: 52px;
 }
 
 .input-field-wrapper textarea {
@@ -221,13 +223,13 @@ body {
   background: transparent;
   border: none;
   color: white;
-  padding: 1.2rem 60px; /* Balanced padding for centered text with absolute button */
+  padding: 0.8rem 50px; /* Reduced padding for compact look */
   resize: none;
   font-family: inherit;
-  font-size: 1rem;
+  font-size: 0.95rem;
   outline: none;
   text-align: center;
-  line-height: 1.5;
+  line-height: 1.4;
   display: flex;
   align-items: center;
 }
@@ -235,16 +237,16 @@ body {
 .input-field-wrapper textarea::placeholder {
   text-align: center;
   color: var(--text-dim);
-  opacity: 0.6;
+  opacity: 0.5;
 }
 
 .send-btn-inside {
   position: absolute;
-  right: 8px;
-  width: 44px;
-  height: 44px;
+  right: 6px;
+  width: 38px;
+  height: 38px;
   background: var(--accent-color);
-  border-radius: 14px;
+  border-radius: 50%; /* Circular button like ChatGPT */
   border: none;
   color: white;
   cursor: pointer;
