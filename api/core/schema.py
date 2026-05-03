@@ -116,4 +116,26 @@ class SchemaEngine:
         
         return True, "Valid"
 
+    def apply_patch(self, patch):
+        """Merges a patch into the current schema with history tracking."""
+        for key, new_node in patch.items():
+            if key in self.current_schema:
+                old_node = self.current_schema[key]
+                # Push current state to history if it was filled
+                if old_node["meta"]["filled"]:
+                    history_entry = {
+                        "state": copy.deepcopy(old_node["state"]),
+                        "target": copy.deepcopy(old_node["target"]),
+                        "meta": {
+                            "source": old_node["meta"]["source"],
+                            "confidence": old_node["meta"]["confidence"],
+                            "timestamp": old_node["meta"].get("last_updated")
+                        }
+                    }
+                    new_node["meta"]["history"] = old_node["meta"].get("history", []) + [history_entry]
+                
+                # Merge
+                self.current_schema[key].update(new_node)
+        return self.current_schema
+
 schema_engine = SchemaEngine()
