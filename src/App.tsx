@@ -90,6 +90,13 @@ function App() {
 
   return (
     <div className="app-container">
+      <BuilderSidebar 
+        patch={patch} 
+        onAccept={handleAcceptPatch} 
+        onReject={handleRejectPatch}
+        isLoading={isLoading}
+      />
+
       <main className="main-content">
         <header className="app-header">
           <h1>THE ARCHITECT</h1>
@@ -102,16 +109,12 @@ function App() {
             <h2>{nextStep?.prompt || "System Outcome Definition"}</h2>
             <p className="node-indicator">Target: {nextStep?.node || "Goal"}</p>
           </div>
+        </div>
+
+        <div className="bottom-right-container">
           <InputArea onSendMessage={handleSendMessage} isLoading={isLoading} />
         </div>
       </main>
-
-      <BuilderSidebar 
-        patch={patch} 
-        onAccept={handleAcceptPatch} 
-        onReject={handleRejectPatch}
-        isLoading={isLoading}
-      />
     </div>
   )
 }
