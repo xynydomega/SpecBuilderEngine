@@ -53,8 +53,7 @@ function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ patch: confirmedPatch })
       })
-      const data = await res.json()
-      setSchema(data.schema)
+      await res.json()
       setPatch(null)
     } catch (err) {
       setError("Failed to apply changes.")
