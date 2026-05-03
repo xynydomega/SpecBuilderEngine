@@ -17,136 +17,32 @@ class SchemaEngine:
 
         self.base_schema = {
             "goal": {
-                "target": {
-                    "role": "define system outcome",
-                    "success_criteria": []
-                },
-                "state": {
-                    "value": None,
-                    "resolved": False
-                },
-                "meta": self._create_meta(source="user"),
-                "direction": {
-                    "on_update": [
-                        { "type": "assign", "target": "goal.state.value", "from": "user.input" },
-                        { "type": "validate", "target": "goal.state.value" },
-                        { "type": "set", "target": "goal.meta.filled", "value": True },
-                        { "type": "set", "target": "goal.meta.source", "value": "user" }
-                    ],
-                    "on_resolve": [
-                        { "type": "branch", "condition": "valid", "next": "goal.state.resolved.true" },
-                        { "type": "branch", "condition": "invalid", "next": "agent.ask_goal" }
-                    ]
-                }
+                "target": {}, "state": {}, "direction": {},
+                "meta": self._create_meta(source="user")
             },
             "type": {
-                "target": {
-                    "role": "predict structure or intent"
-                },
-                "state": {
-                    "candidates": [],
-                    "selected": None,
-                    "confidence": 0.0
-                },
-                "meta": self._create_meta(source="inferred", dependencies=["goal"]),
-                "direction": {
-                    "on_infer": [
-                        { "type": "extract", "target": "user.input" },
-                        { "type": "generate", "target": "candidates" },
-                        { "type": "score", "target": "confidence" },
-                        { "type": "set", "target": "meta.filled", "value": True }
-                    ],
-                    "on_validate": [
-                        { "type": "branch", "condition": "confidence >= 0.6", "next": "select_candidate" },
-                        { "type": "branch", "condition": "confidence < 0.6", "next": "agent.ask_type" }
-                    ]
-                }
+                "target": {}, "state": {}, "direction": {},
+                "meta": self._create_meta(source="inferred", dependencies=["goal"])
             },
             "input": {
-                "target": {
-                    "role": "collect required data"
-                },
-                "state": {
-                    "fields": {},
-                    "valid": False
-                },
-                "meta": self._create_meta(source="mixed", dependencies=["goal"]),
-                "direction": {
-                    "on_input": [
-                        { "type": "merge", "target": "input.state.fields", "from": "user.input" },
-                        { "type": "validate", "target": "input.state.fields" },
-                        { "type": "set", "target": "input.meta.filled", "value": True }
-                    ]
-                },
-                "components": {}
+                "target": {}, "state": {}, "direction": {},
+                "meta": self._create_meta(source="mixed", dependencies=["goal"])
             },
             "output": {
-                "target": {
-                    "role": "system outputs per component"
-                },
-                "state": {
-                    "results": {},
-                    "valid": False
-                },
-                "meta": self._create_meta(dependencies=["input"]),
-                "direction": {
-                    "on_output": [
-                        { "type": "generate", "target": "results", "from": "input" }
-                    ]
-                }
+                "target": {}, "state": {}, "direction": {},
+                "meta": self._create_meta(dependencies=["input"])
             },
             "ui": {
-                "target": {
-                    "role": "render interface"
-                },
-                "state": {
-                    "layout": None
-                },
-                "meta": self._create_meta(required=False, dependencies=["type"]),
-                "direction": {
-                    "on_render": [
-                        { "type": "build", "target": "layout", "from": "components" }
-                    ]
-                }
+                "target": {}, "state": {}, "direction": {},
+                "meta": self._create_meta(required=False, dependencies=["type"])
             },
             "behavior": {
-                "target": {
-                    "role": "orchestrate execution"
-                },
-                "state": {
-                    "current_step": None
-                },
-                "meta": self._create_meta(filled=True, confidence=1.0, status="locked", confirmed=True),
-                "direction": {
-                    "flow": [
-                        { "type": "call", "target": "mapper.on_input" },
-                        { "type": "call", "target": "sequencer.on_step" },
-                        { "type": "call", "target": "agent.loop" }
-                    ]
-                }
+                "target": {}, "state": {}, "direction": {},
+                "meta": self._create_meta(filled=True, confidence=1.0, status="locked", confirmed=True)
             },
             "suggestions": {
-                "target": {
-                    "role": "assist missing components with safe patterns"
-                },
-                "state": {
-                    "items": []
-                },
-                "meta": self._create_meta(required=False, source="inferred"),
-                "direction": {
-                    "on_generate": [
-                        {
-                            "type": "suggest",
-                            "items": [
-                                {
-                                    "component": "password",
-                                    "reason": "standard authentication pattern",
-                                    "confidence": 0.7
-                                }
-                            ]
-                        }
-                    ]
-                }
+                "target": {}, "state": {}, "direction": {},
+                "meta": self._create_meta(required=False, source="inferred")
             }
         }
         self.current_schema = copy.deepcopy(self.base_schema)
@@ -163,28 +59,44 @@ class SchemaEngine:
         self.current_schema = copy.deepcopy(self.base_schema)
         return self.current_schema
 
-    def apply_patch(self, patch):
-        """Merges a patch into the current schema with history tracking."""
-        for key, new_node in patch.items():
+    def apply_patch(self, patch, mark_confirmed=False):
+        """Merges a patch into the current schema with deep meta merging."""
+        for key, new_data in patch.items():
             if key in self.current_schema:
-                old_node = self.current_schema[key]
-                # Push current state to history if it was filled
-                if old_node["meta"]["filled"]:
+                node = self.current_schema[key]
+                
+                # History tracking
+                if node["meta"]["filled"]:
                     history_entry = {
-                        "state": copy.deepcopy(old_node["state"]),
-                        "target": copy.deepcopy(old_node["target"]),
+                        "state": copy.deepcopy(node.get("state")),
+                        "target": copy.deepcopy(node.get("target")),
+                        "direction": copy.deepcopy(node.get("direction")),
                         "meta": {
-                            "source": old_node["meta"]["source"],
-                            "confidence": old_node["meta"]["confidence"],
-                            "timestamp": old_node["meta"].get("last_updated")
+                            "source": node["meta"]["source"],
+                            "confidence": node["meta"]["confidence"],
+                            "timestamp": node["meta"].get("last_updated")
                         }
                     }
-                    if "history" not in new_node["meta"]:
-                         new_node["meta"]["history"] = []
-                    new_node["meta"]["history"] = old_node["meta"].get("history", []) + [history_entry]
+                    node["meta"]["history"].append(history_entry)
                 
-                new_node["meta"]["last_updated"] = datetime.now().isoformat()
-                self.current_schema[key].update(new_node)
+                # Update data fields
+                for field in ["target", "state", "direction"]:
+                    if field in new_data:
+                        node[field] = new_data[field]
+                
+                # Deep merge meta
+                if "meta" in new_data:
+                    for m_key, m_val in new_data["meta"].items():
+                        if m_key != "history": # Preserve history
+                            node["meta"][m_key] = m_val
+                
+                if mark_confirmed:
+                    node["meta"]["confirmed"] = True
+                    node["meta"]["status"] = "completed"
+                
+                node["meta"]["filled"] = True
+                node["meta"]["last_updated"] = datetime.now().isoformat()
+                
         return self.current_schema
 
 schema_engine = SchemaEngine()
