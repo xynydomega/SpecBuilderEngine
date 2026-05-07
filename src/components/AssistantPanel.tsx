@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { MessageSquare, X, Send, Sparkles } from 'lucide-react'
+import { X, Send, Sparkles } from 'lucide-react'
 import './AssistantPanel.css'
 
 interface AssistantPanelProps {

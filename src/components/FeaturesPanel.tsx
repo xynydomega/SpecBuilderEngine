@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, Info, Layers, Tool, Component, Target, Shield, Activity } from 'lucide-react';
+import { Check, X, Layers, Wrench, Component, Target, Shield, Activity } from 'lucide-react';
 
 interface FeaturesPanelProps {
   patch: any;
@@ -14,13 +14,12 @@ const TreeNode = ({ id, node }: { id: string, node: any }) => {
   const semantic = data.semantic_layer || {};
   const intent = semantic.intent?.data || {};
   const constraints = semantic.constraints?.data || {};
-  const state = data.state_system?.config?.data || {};
 
   const getIcon = (type: string) => {
     switch (type) {
       case 'feature': return <Layers size={14} className="icon-feature" />;
       case 'component': return <Component size={14} className="icon-component" />;
-      case 'tool': return <Tool size={14} className="icon-tool" />;
+      case 'tool': return <Wrench size={14} className="icon-tool" />;
       default: return <Target size={14} className="icon-goal" />;
     }
   };
