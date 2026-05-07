@@ -11,41 +11,128 @@ class AgentEngine:
             self.client = None
 
     def get_initial_greeting(self):
-        return "System active. Define the core purpose of the main objective."
+        return "System vision initializing. Define the core intent (target and direction) of your goal."
 
-    def generate_response(self, user_input, patch, next_step, is_irrelevant=False):
-        """Generates a strict, masked interrogation response under 30 words."""
-        if is_irrelevant:
-            return "I do not see how this relates to a goal. Stay on task."
-
+    def generate_interrogation(self, user_input, current_schema, next_stage):
+        """
+        The Interrogator: Strict, polite, non-explanatory.
+        Focuses on extracting logic and drawing the tree.
+        """
         if not self.client:
-            return next_step['prompt']
+            return f"Stage: {next_stage['stage']}. Please provide details for {next_stage.get('node_id') or 'next step'}."
 
         prompt = f"""
-        You are an Interrogator gathering system specs.
+        You are THE INTERROGATOR. You are an autonomous architect.
+        Your goal is to extract the system vision into a Pydantic-ready tree.
         
-        User Input: "{user_input}"
-        Extraction: {json.dumps(patch)}
-        Next Question to ask: "{next_step['prompt']}"
+        Current Schema: {json.dumps(current_schema)}
+        Current Protocol Stage: {next_stage['stage']}
+        Node in focus: {next_stage.get('node_id') or next_stage.get('parent_id')}
+        
+        USER INPUT: "{user_input}"
         
         RULES:
-        1. MAX 30 WORDS.
-        2. NO conversation, NO philosophy, NO greetings.
-        3. Read back what was just defined.
-        4. Ask the Next Question exactly or closely.
+        1. BE POLITE but STRICT.
+        2. NO EXPLANATIONS. Do not tell the user WHY you need this.
+        3. NO GREETINGS. NO CHITCHAT.
+        4. Focus on the missing protocol requirements: Intent (Target/Direction), Constraints, or State.
+        5. Read back the core of what was just extracted, then ask for the next part of the tree.
+        6. Keep response under 40 words.
+        """
         
-        Response Format Example:
-        "Extracted [X]. Now, [Next Question]"
+        try:
+            chat_completion = self.client.chat.completions.create(
+                messages=[{"role": "system", "content": "You are a detail-strict system architect."},
+                          {"role": "user", "content": prompt}],
+                model="llama-3.1-8b-instant",
+                max_tokens=100
+            )
+            return chat_completion.choices[0].message.content.strip()
+        except Exception as e:
+            return f"Interrogation error: {str(e)}"
+
+    def generate_assistant_suggestion(self, user_input, current_schema, next_stage):
+        """
+        The Executive Assistant: Helpful, uses analogies, explains why.
+        Provides a 'suggested version' of the idea.
+        """
+        if not self.client:
+            return "I am here to help you build your idea. What can I clarify?"
+
+        prompt = f"""
+        You are THE EXECUTIVE ASSISTANT. You are a supportive guardian angel.
+        You help the user navigate the Interrogator's strict demands.
+        
+        Current Schema: {json.dumps(current_schema)}
+        Current Protocol Stage: {next_stage['stage']}
+        
+        USER INPUT: "{user_input}"
+        
+        TASKS:
+        1. Explain WHY the Interrogator is asking for these specific details.
+        2. Provide an ANALOGY or EXAMPLE to help the user provide good data.
+        3. Build a "Suggested Version" of the next part of the idea.
+        4. GUARDRAIL: Only talk about the task at hand. If the user is unrelated, decline politely.
+        
+        Response Format:
+        Rationale: [Why it matters]
+        Suggestion: [An example of what they could say]
+        Analogy: [A helpful comparison]
+        """
+        
+        try:
+            chat_completion = self.client.chat.completions.create(
+                messages=[{"role": "system", "content": "You are a helpful, proactive executive assistant."},
+                          {"role": "user", "content": prompt}],
+                model="llama-3.1-8b-instant",
+                max_tokens=250
+            )
+            return chat_completion.choices[0].message.content.strip()
+        except Exception as e:
+            return f"Assistant error: {str(e)}"
+
+    def extract_patch(self, user_input, current_schema, next_stage):
+        """
+        The Interrogator 'Draws' the tree by generating a JSON patch.
+        """
+        if not self.client:
+            return {}
+
+        prompt = f"""
+        You are THE INTERROGATOR. Extract the user input into a JSON patch for the SchemaManager.
+        The patch must follow this structure:
+        {{
+            "config": {{
+                "data": {{ ... }},
+                "children": {{
+                    "child_id": {{ "type": "feature/component/tool", "data": {{ ... }} }}
+                }}
+            }}
+        }}
+        
+        Current Stage: {next_stage['stage']}
+        User Input: "{user_input}"
+        
+        Mandatory Fields for Nodes:
+        - data.semantic_layer.intent (target, direction)
+        - data.semantic_layer.constraints (global_rules, inheritance_rules)
+        - data.state_system.config.data.initial
+        
+        If it's a Tool:
+        - data.input, data.processing, data.output
+        
+        Return ONLY valid JSON.
         """
         
         try:
             chat_completion = self.client.chat.completions.create(
                 messages=[{"role": "user", "content": prompt}],
                 model="llama-3.1-8b-instant",
-                max_tokens=50
+                response_format={"type": "json_object"}
             )
-            return chat_completion.choices[0].message.content.strip()
+            res = json.loads(chat_completion.choices[0].message.content)
+            return res
         except:
-            return next_step['prompt']
+            return {}
 
 agent_engine = AgentEngine()

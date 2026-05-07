@@ -3,8 +3,6 @@ from flask_cors import CORS
 import sys
 import traceback
 from .core.schema import schema_engine
-from .core.mapper import mapper_engine
-from .core.sequencer import sequencer_engine
 from .core.agent import agent_engine
 
 app = Flask(__name__)
@@ -24,6 +22,7 @@ def agent_init():
 
 @app.route('/api/agent/message', methods=['POST'])
 def agent_message():
+    """Endpoint for the Interrogator-Architect."""
     try:
         data = request.json
         user_input = data.get("input")
@@ -31,28 +30,42 @@ def agent_message():
             return jsonify({"error": "No input provided"}), 400
         
         current_schema = schema_engine.get_schema()
+        next_stage = schema_engine.get_current_stage()
         
-        # 1. Extraction & Relevance
-        mapper_result = mapper_engine.extract_from_input(user_input, current_schema)
-        if "error" in mapper_result:
-            return jsonify({"error": mapper_result["error"]}), 500
-            
-        patch = mapper_result.get("patch", {})
-        is_irrelevant = not mapper_result.get("is_relevant", True)
+        # 1. Extraction (Interrogator 'Draws' the patch)
+        patch = agent_engine.extract_patch(user_input, current_schema, next_stage)
         
-        # 2. Sequence Determination
-        next_step = sequencer_engine.get_next_step(current_schema)
-        
-        # 3. Response Generation
-        response_text = agent_engine.generate_response(user_input, patch, next_step, is_irrelevant)
+        # 2. Interrogation Response
+        response_text = agent_engine.generate_interrogation(user_input, current_schema, next_stage)
         
         return jsonify({
             "patch": patch,
-            "message": response_text
+            "message": response_text,
+            "stage": next_stage["stage"]
         }), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
         return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+
+@app.route('/api/agent/assistant', methods=['POST'])
+def agent_assistant():
+    """Endpoint for the Executive Assistant floating box."""
+    try:
+        data = request.json
+        user_input = data.get("input") # Can be empty if just asking for help
+        
+        current_schema = schema_engine.get_schema()
+        next_stage = schema_engine.get_current_stage()
+        
+        suggestion = agent_engine.generate_assistant_suggestion(user_input, current_schema, next_stage)
+        
+        return jsonify({
+            "message": suggestion,
+            "stage": next_stage["stage"]
+        }), 200
+    except Exception as e:
+        print(traceback.format_exc(), file=sys.stderr)
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/api/agent/confirm', methods=['POST'])
 def agent_confirm():
@@ -62,14 +75,14 @@ def agent_confirm():
         if not patch:
             return jsonify({"error": "No patch provided"}), 400
         
-        # Apply patch and mark as confirmed
+        # Apply patch to the Pydantic-based manager
         updated_schema = schema_engine.apply_patch(patch, mark_confirmed=True)
-        next_step = sequencer_engine.get_next_step(updated_schema)
+        next_stage = schema_engine.get_current_stage()
         
         return jsonify({
-            "message": "Step confirmed.", 
+            "message": "Protocol step confirmed.", 
             "schema": updated_schema,
-            "next_step_prompt": next_step["prompt"]
+            "next_stage": next_stage
         }), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)

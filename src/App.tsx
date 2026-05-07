@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import './App.css'
 import InputArea from './components/InputArea'
 import FeaturesPanel from './components/FeaturesPanel'
+import AssistantPanel from './components/AssistantPanel'
 import { Settings } from 'lucide-react'
 
 interface Message {
@@ -12,6 +13,7 @@ interface Message {
 function App() {
   const [chatHistory, setChatHistory] = useState<Message[]>([])
   const [patch, setPatch] = useState<any>(null)
+  const [currentStage, setCurrentStage] = useState<string>('goal_definition')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sidebarSide, setSidebarSide] = useState<'left' | 'right'>('left')
@@ -65,6 +67,7 @@ function App() {
         setError(data.error)
       } else {
         setChatHistory(prev => [...prev, { role: 'agent', content: data.message }])
+        setCurrentStage(data.stage || 'unknown')
         if (data.patch && Object.keys(data.patch).length > 0) {
           setPatch(data.patch)
         }
@@ -86,7 +89,9 @@ function App() {
       })
       const data = await res.json()
       setPatch(null)
-      setChatHistory(prev => [...prev, { role: 'agent', content: data.next_step_prompt }])
+      setCurrentStage(data.next_stage?.stage || 'unknown')
+      // Next greeting comes from the Interrogator's next question in real flow,
+      // but we can add a confirmation message.
     } catch (err) {
       setError("Failed to apply changes.")
     } finally {
@@ -111,6 +116,8 @@ function App() {
         onReject={handleRejectPatch}
         isLoading={isLoading}
       />
+
+      <AssistantPanel currentStage={currentStage} />
 
       <main className="main-stage">
         {/* Path 1: App Branding */}

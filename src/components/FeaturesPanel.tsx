@@ -1,5 +1,5 @@
 import React from 'react';
-import { Check, X, Info } from 'lucide-react';
+import { Check, X, Info, Layers, Tool, Component, Target, Shield, Activity } from 'lucide-react';
 
 interface FeaturesPanelProps {
   patch: any;
@@ -8,56 +8,71 @@ interface FeaturesPanelProps {
   isLoading: boolean;
 }
 
-const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject, isLoading }) => {
-  const renderComponent = (key: string, data: any) => {
-    if (!data) return null;
+const TreeNode = ({ id, node }: { id: string, node: any }) => {
+  const data = node.data || {};
+  const meta = node.meta || {};
+  const semantic = data.semantic_layer || {};
+  const intent = semantic.intent?.data || {};
+  const constraints = semantic.constraints?.data || {};
+  const state = data.state_system?.config?.data || {};
 
-    let content = null;
-    const state = data.state || {};
-
-    // Unified renderer based on structure instead of hardcoded keys where possible
-    if (key === 'goal') {
-      content = <p className="component-value">"{state.value || state.vision || JSON.stringify(state)}"</p>;
-    } else if (state.components || state.candidates || Array.isArray(state)) {
-      const items = state.components || state.candidates || (Array.isArray(state) ? state : []);
-      content = (
-        <ul className="component-list">
-          {items.map((c: any, i: number) => (
-            <li key={i}>{typeof c === 'string' ? c : (c.name || c.label || JSON.stringify(c))}</li>
-          ))}
-        </ul>
-      );
-    } else if (state.fields || state.results || typeof state === 'object') {
-      const entries = state.fields || state.results || state;
-      content = (
-        <ul className="component-list">
-          {Object.entries(entries).map(([k, v]: [string, any], i: number) => (
-            <li key={i}>
-              <strong>{k}:</strong> {typeof v === 'string' ? v : (v.reason || v.role || JSON.stringify(v))}
-            </li>
-          ))}
-        </ul>
-      );
+  const getIcon = (type: string) => {
+    switch (type) {
+      case 'feature': return <Layers size={14} className="icon-feature" />;
+      case 'component': return <Component size={14} className="icon-component" />;
+      case 'tool': return <Tool size={14} className="icon-tool" />;
+      default: return <Target size={14} className="icon-goal" />;
     }
-
-    return (
-      <div key={key} className="sidebar-node">
-        <div className="node-header">
-          <span className="node-title">{key.toUpperCase()}</span>
-          <span className="node-confidence">{(data.meta.confidence * 100).toFixed(0)}%</span>
-        </div>
-        <div className="node-reason">
-          <Info size={12} /> {data.target.role || data.target.intent || "System Component"}
-        </div>
-        <div className="node-content">{content}</div>
-      </div>
-    );
   };
+
+  return (
+    <div className={`tree-node ${node.type}`}>
+      <div className="node-main">
+        <div className="node-header">
+          <div className="title-area">
+            {getIcon(node.type)}
+            <span className="node-name">{data.name || id}</span>
+          </div>
+          <div className="meta-area">
+            <span className="node-confidence">{(meta.confidence * 100).toFixed(0)}%</span>
+          </div>
+        </div>
+
+        <div className="node-details">
+          {intent.target && (
+            <div className="detail-item">
+              <Activity size={10} />
+              <span><strong>Intent:</strong> {intent.target} ({intent.direction})</span>
+            </div>
+          )}
+          {(constraints.global_rules?.length > 0 || constraints.inheritance_rules?.length > 0) && (
+            <div className="detail-item">
+              <Shield size={10} />
+              <span><strong>Rules:</strong> {constraints.global_rules?.length || 0} active</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {node.children && Object.keys(node.children).length > 0 && (
+        <div className="node-children">
+          {Object.entries(node.children).map(([cid, cnode]: [string, any]) => (
+            <TreeNode key={cid} id={cid} node={cnode} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject, isLoading }) => {
+  // If patch is present, we wrap it in a root if it doesn't have the "config" key
+  const rootNode = patch?.config ? patch.config : (patch ? { type: 'goal', data: { name: "Proposed Change" }, children: patch } : null);
 
   return (
     <div className="features-panel">
       <div className="panel-header">
-        <h2>Features</h2>
+        <h2>Blueprint</h2>
         {patch && (
           <div className="patch-actions">
             <button onClick={() => onAccept(patch)} className="accept-button" title="Accept all">
@@ -74,14 +89,16 @@ const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject
         {isLoading ? (
           <div className="sidebar-loading">
             <div className="spinner large"></div>
-            <p>Analyzing architecture...</p>
+            <p>Architecting...</p>
           </div>
-        ) : !patch ? (
+        ) : !rootNode ? (
           <div className="sidebar-empty">
-            <p>Your blueprint will appear here as you describe your project.</p>
+            <p>The Architect is waiting for your vision.</p>
           </div>
         ) : (
-          Object.entries(patch).map(([key, data]) => renderComponent(key, data))
+          <div className="tree-container">
+            <TreeNode id="root" node={rootNode} />
+          </div>
         )}
       </div>
     </div>
