@@ -2,8 +2,8 @@ from flask import Flask, jsonify, request
 from flask_cors import CORS
 import sys
 import traceback
-from .core.schema import schema_engine
-from .core.agent import agent_engine
+from core.schema import schema_engine
+from core.agent import agent_engine
 
 app = Flask(__name__)
 CORS(app)
