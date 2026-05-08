@@ -297,16 +297,102 @@ body {
   40% { transform: scale(1); }
 }
 
-.error-banner {
-  position: fixed;
-  bottom: 100px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--error-color);
-  color: white;
-  padding: 0.8rem 1.5rem;
+/* Blueprint Tree Styles */
+.tree-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.tree-node {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-left: 1px dashed var(--border-color);
+  padding-left: 1rem;
+  margin-left: 0.5rem;
+}
+
+.tree-node.goal { border-left: none; margin-left: 0; padding-left: 0; }
+
+.node-main {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-color);
   border-radius: 12px;
-  font-size: 0.9rem;
-  box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-  z-index: 1000;
+  padding: 1rem;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.node-main:hover {
+  border-color: var(--accent-color);
+  transform: translateX(4px);
+}
+
+.node-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.8rem;
+}
+
+.title-area {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.node-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.node-confidence {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.05);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.node-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-dim);
+}
+
+.detail-item strong {
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.node-children {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Icon Colors */
+.icon-feature { color: #8b5cf6; }
+.icon-component { color: #3b82f6; }
+.icon-tool { color: #10b981; }
+.icon-goal { color: #f59e0b; }
+
+/* Sidebar Loading & Empty */
+.sidebar-loading, .sidebar-empty {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--text-dim);
+  gap: 1rem;
 }
