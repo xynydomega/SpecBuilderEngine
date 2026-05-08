@@ -385,14 +385,36 @@ body {
 .icon-tool { color: #10b981; }
 .icon-goal { color: #f59e0b; }
 
-/* Sidebar Loading & Empty */
-.sidebar-loading, .sidebar-empty {
-  height: 100%;
+/* Patch Actions */
+.patch-actions {
   display: flex;
-  flex-direction: column;
+  gap: 8px;
+}
+
+.patch-actions button {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  background: rgba(255,255,255,0.03);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  color: var(--text-dim);
-  gap: 1rem;
+  transition: all 0.2s;
+}
+
+.patch-actions .accept-button:hover {
+  background: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.patch-actions .reject-button:hover {
+  background: var(--error-color);
+  color: white;
+  border-color: var(--error-color);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
