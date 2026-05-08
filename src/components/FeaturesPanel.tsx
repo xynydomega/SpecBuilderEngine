@@ -1,16 +1,45 @@
 import React from 'react';
 import { Check, X, Layers, Wrench, Component, Target, Shield, Activity } from 'lucide-react';
 
+interface NodeData {
+  name?: string;
+  semantic_layer?: {
+    intent?: {
+      data?: {
+        target?: string;
+        direction?: string;
+      }
+    };
+    constraints?: {
+      data?: {
+        global_rules?: string[];
+        inheritance_rules?: string[];
+      }
+    };
+  };
+}
+
+interface NodeMeta {
+  confidence: number;
+}
+
+interface Node {
+  type: string;
+  data?: NodeData;
+  meta?: NodeMeta;
+  children?: Record<string, Node>;
+}
+
 interface FeaturesPanelProps {
-  patch: any;
-  onAccept: (patch: any) => void;
+  patch: Record<string, unknown> | null;
+  onAccept: (patch: Record<string, unknown>) => void;
   onReject: () => void;
   isLoading: boolean;
 }
 
-const TreeNode = ({ id, node }: { id: string, node: any }) => {
+const TreeNode = ({ id, node }: { id: string, node: Node }) => {
   const data = node.data || {};
-  const meta = node.meta || {};
+  const meta = node.meta || { confidence: 0 };
   const semantic = data.semantic_layer || {};
   const intent = semantic.intent?.data || {};
   const constraints = semantic.constraints?.data || {};
@@ -44,10 +73,10 @@ const TreeNode = ({ id, node }: { id: string, node: any }) => {
               <span><strong>Intent:</strong> {intent.target} ({intent.direction})</span>
             </div>
           )}
-          {(constraints.global_rules?.length > 0 || constraints.inheritance_rules?.length > 0) && (
+          {((constraints.global_rules?.length ?? 0) > 0 || (constraints.inheritance_rules?.length ?? 0) > 0) && (
             <div className="detail-item">
               <Shield size={10} />
-              <span><strong>Rules:</strong> {constraints.global_rules?.length || 0} active</span>
+              <span><strong>Rules:</strong> {(constraints.global_rules?.length ?? 0) + (constraints.inheritance_rules?.length ?? 0)} active</span>
             </div>
           )}
         </div>
@@ -55,7 +84,7 @@ const TreeNode = ({ id, node }: { id: string, node: any }) => {
 
       {node.children && Object.keys(node.children).length > 0 && (
         <div className="node-children">
-          {Object.entries(node.children).map(([cid, cnode]: [string, any]) => (
+          {Object.entries(node.children).map(([cid, cnode]) => (
             <TreeNode key={cid} id={cid} node={cnode} />
           ))}
         </div>
@@ -66,7 +95,7 @@ const TreeNode = ({ id, node }: { id: string, node: any }) => {
 
 const FeaturesPanel: React.FC<FeaturesPanelProps> = ({ patch, onAccept, onReject, isLoading }) => {
   // If patch is present, we wrap it in a root if it doesn't have the "config" key
-  const rootNode = patch?.config ? patch.config : (patch ? { type: 'goal', data: { name: "Proposed Change" }, children: patch } : null);
+  const rootNode = patch?.config ? (patch.config as Node) : (patch ? { type: 'goal', data: { name: "Proposed Change" }, children: patch as Record<string, Node> } : null);
 
   return (
     <div className="features-panel">

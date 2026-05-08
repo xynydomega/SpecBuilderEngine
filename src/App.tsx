@@ -12,7 +12,7 @@ interface Message {
 
 function App() {
   const [chatHistory, setChatHistory] = useState<Message[]>([])
-  const [patch, setPatch] = useState<any>(null)
+  const [patch, setPatch] = useState<Record<string, unknown> | null>(null)
   const [currentStage, setCurrentStage] = useState<string>('goal_definition')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -68,18 +68,19 @@ function App() {
       } else {
         setChatHistory(prev => [...prev, { role: 'agent', content: data.message }])
         setCurrentStage(data.stage || 'unknown')
-        if (data.patch && Object.keys(data.patch).length > 0) {
+        if (data.patch && Object.keys(data.patch as object).length > 0) {
           setPatch(data.patch)
         }
       }
     } catch (err) {
+      console.error("Failed to send message", err)
       setError("Agent is unresponsive. Please check your connection.")
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleAcceptPatch = async (confirmedPatch: any) => {
+  const handleAcceptPatch = async (confirmedPatch: Record<string, unknown>) => {
     setIsLoading(true)
     try {
       const res = await fetch('/api/agent/confirm', {
@@ -93,6 +94,7 @@ function App() {
       // Next greeting comes from the Interrogator's next question in real flow,
       // but we can add a confirmation message.
     } catch (err) {
+      console.error("Failed to apply changes", err)
       setError("Failed to apply changes.")
     } finally {
       setIsLoading(false)

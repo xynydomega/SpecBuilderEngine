@@ -36,13 +36,13 @@ class AgentEngine:
         2. NO EXPLANATIONS. Do not tell the user WHY you need this.
         3. NO GREETINGS. NO CHITCHAT.
         4. Focus on the missing protocol requirements: Intent (Target/Direction), Constraints, or State.
-        5. Read back the core of what was just extracted, then ask for the next part of the tree.
+        5. Read back the core of what was just extracted (IGNORING INTERNAL IDs), then ask for the next part of the tree.
         6. Keep response under 40 words.
         """
         
         try:
             chat_completion = self.client.chat.completions.create(
-                messages=[{"role": "system", "content": "You are a detail-strict system architect."},
+                messages=[{"role": "system", "content": "You are a detail-strict system architect. Never mention internal UUIDs in your responses."},
                           {"role": "user", "content": prompt}],
                 model="llama-3.1-8b-instant",
                 max_tokens=100
@@ -93,40 +93,37 @@ class AgentEngine:
 
     def extract_patch(self, user_input, current_schema, next_stage):
         """
-        The Interrogator 'Draws' the tree by generating a JSON patch.
+        The Interrogator 'Draws' the tree by generating a structural JSON merge.
         """
         if not self.client:
             return {}
 
-        prompt = f"""
-        You are THE INTERROGATOR. Extract the user input into a JSON patch for the SchemaManager.
-        The patch must follow this structure:
-        {{
-            "config": {{
-                "data": {{ ... }},
-                "children": {{
-                    "child_id": {{ "type": "feature/component/tool", "data": {{ ... }} }}
-                }}
-            }}
-        }}
+        system_rules = """
+        You are a JSON Architect. Your task is to extract user intent into a strict structural JSON.
         
-        Current Stage: {next_stage['stage']}
+        STRICT HIERARCHY:
+        - {"config": {"data": {"name": "...", "semantic_layer": {"intent": {"data": {"target": "...", "direction": "..."}}}, "state_system": {"config": {"data": {"initial": {...}}}}}}}
+        
+        RULES:
+        1. 'config' and 'children' are at the root.
+        2. 'config', 'intent', 'constraints', and 'config' (inside state_system) are NODES and MUST have a 'data' wrapper.
+        3. 'semantic_layer' and 'state_system' are FIELDS and MUST NOT have a 'data' wrapper.
+        4. Extract 'target' and 'direction' from user input. They are MANDATORY.
+        5. Return ONLY valid JSON. No text.
+        """
+        
+        user_prompt = f"""
         User Input: "{user_input}"
-        
-        Mandatory Fields for Nodes:
-        - data.semantic_layer.intent (target, direction)
-        - data.semantic_layer.constraints (global_rules, inheritance_rules)
-        - data.state_system.config.data.initial
-        
-        If it's a Tool:
-        - data.input, data.processing, data.output
-        
-        Return ONLY valid JSON.
+        Current Protocol Stage: {next_stage['stage']}
+        Extract the vision into the Structural JSON.
         """
         
         try:
             chat_completion = self.client.chat.completions.create(
-                messages=[{"role": "user", "content": prompt}],
+                messages=[
+                    {"role": "system", "content": system_rules},
+                    {"role": "user", "content": user_prompt}
+                ],
                 model="llama-3.1-8b-instant",
                 response_format={"type": "json_object"}
             )

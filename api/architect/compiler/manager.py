@@ -74,17 +74,27 @@ class SchemaManager:
         if not sl:
             return False
         
-        intent = sl.intent.data
-        if not intent or not intent.target or not intent.direction:
+        # Intent Node
+        intent_node = getattr(sl, "intent", None)
+        if not intent_node or not intent_node.data:
+            return False
+        
+        intent = intent_node.data
+        if not getattr(intent, "target", None) or not getattr(intent, "direction", None):
             return False
             
-        constraints = sl.constraints.data
-        if not constraints:
+        # Constraints Node (must exist)
+        constraints_node = getattr(sl, "constraints", None)
+        if not constraints_node or not constraints_node.data:
             return False
             
         # Check State System
         ss = getattr(node.data, "state_system", None)
-        if not ss or not ss.config.data or not ss.config.data.initial:
+        if not ss or not ss.config or not ss.config.data:
+            return False
+        
+        # We allow initial to be empty, as long as the structure is there.
+        if ss.config.data.initial is None:
             return False
             
         return True
@@ -97,23 +107,30 @@ class SchemaManager:
 
     def apply_patch(self, patch: Dict[str, Any]):
         """Recursively applies a JSON patch to the Goal tree."""
-        self._merge_node(self.goal.config, patch.get("config", {}))
+        if "config" in patch:
+            self._merge_node(self.goal.config, patch["config"])
+            # If the AI put children at the root instead of inside config
+            if "children" in patch:
+                self._merge_node(self.goal.config, {"children": patch["children"]})
+        else:
+            # Assume the root of the patch is the config itself
+            self._merge_node(self.goal.config, patch)
 
     def _merge_node(self, node: Node, patch: Dict[str, Any]):
-        if not patch:
+        if not patch or not isinstance(patch, dict):
             return
 
         # 1. Update Metadata
-        if "meta" in patch:
+        if "meta" in patch and isinstance(patch["meta"], dict):
             for key, value in patch["meta"].items():
                 if hasattr(node.meta, key):
                     setattr(node.meta, key, value)
             node.meta.last_updated = datetime.now()
 
         # 2. Update Data (Pydantic model merge)
-        if "data" in patch:
+        if "data" in patch and isinstance(patch["data"], dict):
             new_data = patch["data"]
-            if hasattr(node.data, "model_dump"):
+            if node.data and hasattr(node.data, "model_dump"):
                 # Merge current data with patch and re-validate
                 updated_data_dict = node.data.model_dump()
                 self._deep_update(updated_data_dict, new_data)
@@ -122,13 +139,13 @@ class SchemaManager:
                 node.data = new_data
 
         # 3. Update Children Recursively
-        if "children" in patch:
+        if "children" in patch and isinstance(patch["children"], dict):
             for child_id, child_patch in patch["children"].items():
                 if child_id in node.children:
                     self._merge_node(node.children[child_id], child_patch)
                 else:
                     # Create new child node if type is provided
-                    if "type" in child_patch:
+                    if isinstance(child_patch, dict) and "type" in child_patch:
                         new_node = self._create_node_by_type(child_patch["type"], child_patch.get("data", {}))
                         new_node.id = child_id # Sync ID with patch key
                         node.children[child_id] = new_node

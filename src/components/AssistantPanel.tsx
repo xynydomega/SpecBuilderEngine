@@ -31,6 +31,7 @@ function AssistantPanel({ currentStage }: AssistantPanelProps) {
       const data = await res.json()
       setMessages(prev => [...prev, { role: 'assistant', content: data.message }])
     } catch (err) {
+      console.error("Assistant connection error", err)
       setMessages(prev => [...prev, { role: 'assistant', content: "I'm having trouble connecting right now." }])
     } finally {
       setIsLoading(false)

@@ -1,7 +1,22 @@
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 import sys
+import os
 import traceback
+from dotenv import load_dotenv
+
+# Load environment variables from .env.local if it exists, otherwise .env
+# This should be called before importing core modules that might use the env vars
+base_dir = os.path.abspath(os.path.dirname(__file__))
+root_dir = os.path.abspath(os.path.join(base_dir, ".."))
+env_local = os.path.join(root_dir, ".env.local")
+env_standard = os.path.join(root_dir, ".env")
+
+if os.path.exists(env_local):
+    load_dotenv(env_local)
+elif os.path.exists(env_standard):
+    load_dotenv(env_standard)
+
 from core.schema import schema_engine
 from core.agent import agent_engine
 
