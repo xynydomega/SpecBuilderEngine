@@ -1,0 +1,41 @@
+{
+  "mappings": [
+    {
+      "id": "audio_manager",
+      "type": "GOAL",
+      "template_path": "goals/audio_manager.tsx",
+      "dependencies": ["lucide-react", "framer-motion"],
+      "bindings": {
+        "name": "appName",
+        "target": "coreIntent"
+      }
+    },
+    {
+      "id": "waveform_visualizer",
+      "type": "FEATURE",
+      "template_path": "features/waveform_visualizer.tsx",
+      "dependencies": ["wavesurfer.js"],
+      "bindings": {
+        "name": "displayName"
+      }
+    },
+    {
+      "id": "task_timeline",
+      "type": "FEATURE",
+      "template_path": "features/task_timeline.tsx",
+      "dependencies": ["date-fns"],
+      "bindings": {
+        "name": "timelineTitle"
+      }
+    },
+    {
+      "id": "audio_importer",
+      "type": "TOOL",
+      "template_path": "tools/audio_importer.ts",
+      "dependencies": [],
+      "bindings": {
+        "name": "toolName"
+      }
+    }
+  ]
+}

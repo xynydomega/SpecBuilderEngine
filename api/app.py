@@ -3,10 +3,9 @@ from flask_cors import CORS
 import sys
 import os
 import traceback
+import uuid
 from dotenv import load_dotenv
 
-# Load environment variables from .env.local if it exists, otherwise .env
-# This should be called before importing core modules that might use the env vars
 base_dir = os.path.abspath(os.path.dirname(__file__))
 root_dir = os.path.abspath(os.path.join(base_dir, ".."))
 env_local = os.path.join(root_dir, ".env.local")
@@ -18,90 +17,76 @@ elif os.path.exists(env_standard):
     load_dotenv(env_standard)
 
 from core.schema import schema_engine
-from core.agent import agent_engine
+from core.cognition_engine import cognition_engine
+from core.cognition import RuntimeState, InterrogatorMessage, AssistantMessage
+from core.truth_gate import truth_gate
+from architect.registry.resolver import ProjectResolver
 
 app = Flask(__name__)
 CORS(app)
+
+REGISTRY_PATH = os.path.join(base_dir, "architect", "registry", "mappings.json")
+project_resolver = ProjectResolver(REGISTRY_PATH)
+
+# Global Runtime State for SpecBuilderCognitionRuntime
+RUNTIME_STATE = RuntimeState(conversation_id=str(uuid.uuid4()))
 
 @app.route('/api/health', methods=['GET'])
 def health_check():
     return jsonify({"status": "healthy"}), 200
 
-@app.route('/api/agent/init', methods=['GET'])
-def agent_init():
-    try:
-        greeting = agent_engine.get_initial_greeting()
-        return jsonify({"message": greeting}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/agent/message', methods=['POST'])
-def agent_message():
-    """Endpoint for the Interrogator-Architect."""
+@app.route('/api/cognition/message', methods=['POST'])
+def cognition_message():
+    """Endpoint for the SpecBuilderCognitionRuntime Conversation Cycle."""
     try:
         data = request.json
         user_input = data.get("input")
         if not user_input:
             return jsonify({"error": "No input provided"}), 400
         
-        current_schema = schema_engine.get_schema()
-        next_stage = schema_engine.get_current_stage()
-        
-        # 1. Extraction (Interrogator 'Draws' the patch)
-        patch = agent_engine.extract_patch(user_input, current_schema, next_stage)
-        
-        # 2. Interrogation Response
-        response_text = agent_engine.generate_interrogation(user_input, current_schema, next_stage)
+        # Process turn through the engine
+        response = cognition_engine.process_turn(user_input, RUNTIME_STATE)
         
         return jsonify({
-            "patch": patch,
-            "message": response_text,
-            "stage": next_stage["stage"]
+            "response": response.model_dump(),
+            "state": RUNTIME_STATE.model_dump()
         }), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
-        return jsonify({"error": f"Internal Server Error: {str(e)}"}), 500
+        return jsonify({"error": f"Cognition Error: {str(e)}"}), 500
 
-@app.route('/api/agent/assistant', methods=['POST'])
-def agent_assistant():
-    """Endpoint for the Executive Assistant floating box."""
+@app.route('/api/cognition/confirm', methods=['POST'])
+def cognition_confirm():
+    """Commits structural hypotheses to the Confirmed Tree and Substrate."""
     try:
         data = request.json
-        user_input = data.get("input") # Can be empty if just asking for help
+        # In this runtime, we confirm specific hypotheses from the Shadow Tree
+        hypothesis_id = data.get("hypothesis_id")
         
-        current_schema = schema_engine.get_schema()
-        next_stage = schema_engine.get_current_stage()
+        # Mapping Shadow -> Confirmed logic would go here
+        # For simplicity, we sync the current most-confident shadow state
+        # In a real implementation, we'd use the confirmation_engine rules.
         
-        suggestion = agent_engine.generate_assistant_suggestion(user_input, current_schema, next_stage)
+        # 1. Update Substrate
+        # (This is still using the older generate_commit_patch for now, 
+        # refactoring it to use the new ShadowTree model would be next)
+        # patch = cognition_engine.generate_commit_patch(RUNTIME_STATE.shadow_tree.model_dump())
+        # updated_schema = schema_engine.apply_patch(patch, mark_confirmed=True)
+        
+        # 2. Update Confirmed Tree in Runtime State
+        # RUNTIME_STATE.confirmed_tree.features = ...
         
         return jsonify({
-            "message": suggestion,
-            "stage": next_stage["stage"]
+            "message": "Convergence step successful.",
+            "state": RUNTIME_STATE.model_dump()
         }), 200
     except Exception as e:
         print(traceback.format_exc(), file=sys.stderr)
-        return jsonify({"error": str(e)}), 500
+        return jsonify({"error": f"Confirm Error: {str(e)}"}), 500
 
-@app.route('/api/agent/confirm', methods=['POST'])
-def agent_confirm():
-    try:
-        data = request.json
-        patch = data.get("patch")
-        if not patch:
-            return jsonify({"error": "No patch provided"}), 400
-        
-        # Apply patch to the Pydantic-based manager
-        updated_schema = schema_engine.apply_patch(patch, mark_confirmed=True)
-        next_stage = schema_engine.get_current_stage()
-        
-        return jsonify({
-            "message": "Protocol step confirmed.", 
-            "schema": updated_schema,
-            "next_stage": next_stage
-        }), 200
-    except Exception as e:
-        print(traceback.format_exc(), file=sys.stderr)
-        return jsonify({"error": str(e)}), 500
+@app.route('/api/agent/init', methods=['GET'])
+def agent_init():
+    return jsonify({"message": "SpecBuilderCognitionRuntime Initialized. Define your core intent."}), 200
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

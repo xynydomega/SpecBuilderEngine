@@ -1,6 +1,6 @@
 flask
 flask-cors
 gunicorn
-groq
+google-cloud-aiplatform
 pydantic
 python-dotenv

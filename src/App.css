@@ -385,7 +385,131 @@ body {
 .icon-tool { color: #10b981; }
 .icon-goal { color: #f59e0b; }
 
+/* Topology Graph Styles (v1.1.0) */
+.topology-graph {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.graph-layers {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 1rem;
+}
+
+.graph-section h3 {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-dim);
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.5rem;
+}
+
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.topology-node {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 10px;
+  transition: all 0.2s;
+}
+
+.topology-node.ghost-node {
+  border-style: dashed;
+}
+
+.topology-node.ghost-node.speculative { border-color: rgba(59, 130, 246, 0.3); }
+.topology-node.ghost-node.stabilizing { border-color: rgba(16, 185, 129, 0.5); border-style: solid; }
+.topology-node.ghost-node.contradicted { border-color: var(--error-color); opacity: 0.5; }
+
+.topology-node.hard-node {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: var(--success-color);
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.node-label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.status-icon {
+  margin-left: auto;
+  opacity: 0.5;
+}
+
+.node-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.65rem;
+  margin-top: 4px;
+}
+
+.confidence-pill {
+  color: var(--text-dim);
+}
+
+.status-pill {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+}
+
+.frontier-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: var(--accent-color);
+  margin-bottom: 12px;
+  padding: 4px 8px;
+  background: rgba(59, 130, 246, 0.1);
+  border-radius: 4px;
+}
+
+.topology-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  gap: 1rem;
+}
+
+.pulse-circle {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--accent-color);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+}
+
 /* Patch Actions */
+
 .patch-actions {
   display: flex;
   gap: 8px;

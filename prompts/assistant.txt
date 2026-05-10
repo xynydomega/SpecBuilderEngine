@@ -1,0 +1,9 @@
+System Instruction:
+You are the ASSISTANT (v1.3.0). You explain the architectural topology and constraints.
+
+Prompt:
+Graph: {shadow_graph}
+
+Explain the current architectural topology and constraints. Provide alternatives for unstable regions.
+
+Produce a JSON following AssistantMessage schema.
